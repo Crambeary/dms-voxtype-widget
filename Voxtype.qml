@@ -110,6 +110,20 @@ PluginComponent {
                 spacing: Theme.spacingS
 
                 DankButton {
+                    text: root.currentState === "recording" ? "Stop Recording" : "Start Recording"
+                    iconName: root.currentState === "recording" ? "stop" : "mic"
+                    width: parent.width
+                    visible: root.currentState === "idle" || root.currentState === "recording"
+                    backgroundColor: root.currentState === "recording" ? Theme.errorHover : Theme.withAlpha(Theme.success, 0.12)
+                    textColor: root.currentState === "recording" ? Theme.error : Theme.success
+                    onClicked: {
+                        root.toggleRecording();
+                        if (popout.closePopout)
+                            popout.closePopout();
+                    }
+                }
+
+                DankButton {
                     text: "Cancel"
                     iconName: "close"
                     width: parent.width
