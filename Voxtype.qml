@@ -222,6 +222,15 @@ PluginComponent {
                             popout.closePopout();
                     }
                 }
+
+                StyledText {
+                    width: parent.width
+                    topPadding: Theme.spacingXS
+                    text: "Right-click: toggle recording · Middle-click: toggle daemon"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    wrapMode: Text.WordWrap
+                }
             }
         }
     }

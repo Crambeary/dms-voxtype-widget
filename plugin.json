@@ -1,13 +1,18 @@
 {
   "id": "VoxtypeWidget",
-  "name": "Voxtype",
+  "name": "Voxtype Widget",
   "description": "Shows Voxtype dictation status in the bar (idle/recording/transcribing) and toggles recording on click",
   "version": "1.0.0",
-  "author": "voxtype setup dms",
+  "author": "Crambeary",
   "icon": "mic",
   "type": "widget",
   "capabilities": [
     "dankbar-widget"
   ],
-  "component": "./Voxtype.qml"
+  "component": "./Voxtype.qml",
+  "settings": "./VoxtypeSettings.qml",
+  "permissions": [
+    "settings_read",
+    "settings_write"
+  ]
 }
