@@ -35,6 +35,9 @@ PluginComponent {
     property string currentState: "stopped"
     readonly property bool daemonRunning: currentState !== "stopped"
 
+    property string modelName: ""
+    property string memoryUsage: ""
+
     readonly property var stateConfig: ({
         "idle": { icon: "mic", color: Theme.success, label: "Ready to record" },
         "recording": { icon: "radio_button_checked", color: Theme.error, label: "Recording…" },
@@ -45,9 +48,25 @@ PluginComponent {
     readonly property var currentConfig: stateConfig[currentState] || stateConfig["stopped"]
 
     function applyState(state) {
+        const wasRunning = root.daemonRunning;
         if (state && stateConfig[state]) {
             currentState = state;
         }
+        if (root.daemonRunning && !wasRunning)
+            modelInfoProcess.running = true;
+    }
+
+    function formatBytes(bytes) {
+        if (!bytes || bytes <= 0)
+            return "";
+        const units = ["B", "KB", "MB", "GB"];
+        let value = bytes;
+        let unitIndex = 0;
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024;
+            unitIndex++;
+        }
+        return (value >= 10 ? value.toFixed(0) : value.toFixed(1)) + " " + units[unitIndex];
     }
 
     function toggleRecording() {
@@ -68,11 +87,50 @@ PluginComponent {
             statusProcess.running = true
     }
 
+    Timer {
+        interval: 2000
+        running: root.daemonRunning
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: if (!memoryProcess.running)
+            memoryProcess.running = true
+    }
+
     Process {
         id: statusProcess
         command: ["voxtype", "status"]
         stdout: SplitParser {
             onRead: data => root.applyState(data.trim())
+        }
+    }
+
+    // Engine/model come from the on-disk config, not `voxtype status`, so
+    // they're fetched separately (once at startup, and again whenever the
+    // daemon transitions from stopped -> loaded, in case the config changed
+    // while it was down).
+    Process {
+        id: modelInfoProcess
+        command: ["voxtype", "config"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const engineMatch = text.match(/\[engine\][\s\S]*?engine\s*=\s*(\w+)/);
+                const engine = engineMatch ? engineMatch[1] : "";
+                const sectionMatch = engine ? text.match(new RegExp("\\[" + engine.toLowerCase() + "\\][\\s\\S]*?model\\s*=\\s*\"([^\"]+)\"")) : null;
+                root.modelName = sectionMatch ? sectionMatch[1] : "";
+            }
+        }
+    }
+
+    // MemoryCurrent comes from the voxtype.service cgroup, which only
+    // reflects real usage while the daemon (and its loaded model) is running.
+    Process {
+        id: memoryProcess
+        command: ["systemctl", "--user", "show", "voxtype", "-p", "MemoryCurrent", "--value"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const bytes = parseInt(text.trim(), 10);
+                root.memoryUsage = Number.isFinite(bytes) ? root.formatBytes(bytes) : "";
+            }
         }
     }
 
@@ -108,6 +166,17 @@ PluginComponent {
             Column {
                 width: parent.width
                 spacing: Theme.spacingS
+
+                StyledText {
+                    width: parent.width
+                    leftPadding: Theme.spacingS
+                    bottomPadding: Theme.spacingXS
+                    text: root.daemonRunning && root.memoryUsage ? root.modelName + " · " + root.memoryUsage : root.modelName
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    visible: root.modelName.length > 0
+                    wrapMode: Text.WordWrap
+                }
 
                 DankButton {
                     text: root.currentState === "recording" ? "Stop Recording" : "Start Recording"
@@ -216,5 +285,6 @@ PluginComponent {
 
     Component.onCompleted: {
         statusProcess.running = true;
+        modelInfoProcess.running = true;
     }
 }
