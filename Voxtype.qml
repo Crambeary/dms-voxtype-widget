@@ -75,8 +75,8 @@ PluginComponent {
     }
 
     function toggleDaemon() {
-        daemonToggleProcess.command = root.daemonRunning ? ["sh", "-c", "systemctl --user stop voxtype && notify-send -a voxtype 'Voxtype' 'Model unloaded (memory freed)' -i microphone-sensitivity-muted-symbolic"] : ["sh", "-c", "systemctl --user start voxtype && notify-send -a voxtype 'Voxtype' 'Model loading…' -i microphone-sensitivity-high-symbolic"];
-        daemonToggleProcess.running = true;
+        if (!daemonToggleProcess.running)
+            daemonToggleProcess.running = true;
     }
 
     Timer {
@@ -144,9 +144,14 @@ PluginComponent {
         command: ["voxtype", "record", "cancel"]
     }
 
+    // Resolved relative to this QML file (not hardcoded to the README's
+    // symlink target) so the toggle keeps working if the plugin is cloned
+    // or symlinked somewhere else.
+    readonly property string daemonToggleScript: Qt.resolvedUrl("scripts/toggle-daemon.sh").toString().replace("file://", "")
+
     Process {
         id: daemonToggleProcess
-        command: ["true"]
+        command: ["sh", root.daemonToggleScript]
     }
 
     pillRightClickAction: function() {
