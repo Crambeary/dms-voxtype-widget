@@ -156,6 +156,8 @@ PluginComponent {
         Item {
             implicitWidth: icon.implicitWidth
             implicitHeight: icon.implicitHeight
+            width: implicitWidth
+            height: implicitHeight
 
             DankIcon {
                 id: icon
@@ -185,6 +187,8 @@ PluginComponent {
         Item {
             implicitWidth: icon.implicitWidth
             implicitHeight: icon.implicitHeight
+            width: implicitWidth
+            height: implicitHeight
 
             DankIcon {
                 id: icon
